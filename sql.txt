@@ -1,0 +1,48 @@
+SELECT 1 FROM 2 WHERE 3
+1:取得したいカラム名
+2:テーブル名
+3:条件
+
+例1)id,feed,users_id,createdカラムを対象に全レコード取得
+SELECT `id`,`feed`,`created` from `feeds` WHERE 1
+
+例2)全カラムを対象にuser_idが13のレコードのみ取得
+
+(テーブル結合　LEFT JYOIN)
+主役テーブルを左に、参照したいテーブル名を右に置く
+構文
+1
+2主役テーブル
+3参照テーブル
+4結合条件(外部キー)
+5条件
+
+SELECT * FROM `feeds` LEFT JOIN `users` ON `feeds`.`user_id`=`users`.`id` WHERE 1
+
+4結合条件テンプレートへ
+`主役テーブル`.`外部キー`=`参照テーブル`.`主キー`
+
+テーブルにあるキーについて
+主キー:テーブル内で一意である情報
+外部キー:参照先の主キーと一致する情報
+
+例3) ONのあとの結合条件のみ
+主役テーブル members
+主キー id
+外部キー
+
+参照テーブル tweets
+主キー id
+
+SELECT ~ ON `members`.`member_id`=`tweets`.`id`
+
+[カラムの制限]
+SELECT `feeds`.*,`users`.`name`,`users`.`img_name` FROM `feeds` LEFT JOIN `users` ON `feeds`.`user_id`=`users`.`id` WHERE 1
+
+[テーブル名のエイリアス AS句]
+使い方:`テーブル名`　AS `別名`
+SELECT `f`.*,`u`.`name`,`u`.`img_name` FROM `feeds` AS `f` LEFT JOIN `users` AS `u` ON `f`.`user_id`=`u`.`id` WHERE 1
+
+[バックコートは省略可]
+
+
