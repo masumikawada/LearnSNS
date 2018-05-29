@@ -85,14 +85,30 @@
         $like_flag_stmt->execute($like_flag_data);
 
         $like_flag = $like_flag_stmt->fetch(PDO::FETCH_ASSOC);
-        var_dump($like_flag);
+        // var_dump($like_flag);
         if ($like_flag["like_flag"] > 0) {
           $record["like_flag"] = 1;
         } else {
           $record["like_flag"] = 0;
         }
 
-        $feeds[] = $record;//配列への要素追加
+        // いいね済みのみのリンクが押されたときは、配列にすでにいいね！してるものだけを代入する
+
+        if (isset($_GET["feed_select"]) && ($_GET["feed_select"] == "likes") && ($record["like_flag"] == 1)){
+          $feeds[] = $record;
+        }
+
+        // feed_selectが指定されてないときは全件表示
+        if(!isset($_GET["feed_select"])){
+          $feeds[] = $record;
+          // var_dump($feeds);
+        }
+
+        if (isset($_GET["feed_select"]) && ($_GET["feed_select"] == "news")){
+          $feeds[] = $record;
+        }
+
+        // $feeds[] = $record;//配列への要素追加
     }
 
 
@@ -146,8 +162,13 @@
       <div class="row">
         <div class="col-xs-3">
           <ul class="nav nav-pills nav-stacked">
-            <li class="active"><a href="timeline.php?feed_select=news">新着順</a></li>
-            <li><a href="timeline.php?feed_select=likes">いいね！済み</a></li>
+            <?php if(isset($_GET["feed_select"]) && ($_GET["feed_select"] == "likes")){ ?>
+              <li><a href="timeline.php?feed_select=news">新着順</a></li>
+              <li class="active"><a href="timeline.php?feed_select=likes">いいね！済み</a></li>
+            <?php } else { ?>
+              <li class="active"><a href="timeline.php?feed_select=news">新着順</a></li>
+              <li><a href="timeline.php?feed_select=likes">いいね！済み</a></li>
+            <?php } ?>
             <!-- <li><a href="timeline.php?feed_select=follows">フォロー</a></li> -->
           </ul>
         </div>
