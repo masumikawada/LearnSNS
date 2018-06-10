@@ -45,4 +45,11 @@ SELECT `f`.*,`u`.`name`,`u`.`img_name` FROM `feeds` AS `f` LEFT JOIN `users` AS 
 
 [バックコートは省略可]
 
+SELECT * FROM 'feeds' ORDER BY 'created' DESC;
+
+<!-- 最初の5件を表示 -->
+SELECT * FROM 'feeds' ORDER BY 'created' DESC　LIMIT 0,5;
+
+$start = ($page -1)*5
+
 

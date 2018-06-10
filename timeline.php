@@ -12,6 +12,13 @@
   //$img_nameに写真のファイル名を入れる
   //$nameに名前を代入する
     require('dbconnect.php');
+    require('function.php');
+
+    $signin_user = get_signin_user($dbh,$_SESSION["id"]);
+
+    // ログインしているかチェックしてしてなければログイン画面に戻す
+    check_signin($_SESSION["id"]);
+
     $sql = 'SELECT * FROM `users` WHERE `id`=?';
             $data = array($_SESSION['id']);
             $stmt = $dbh->prepare($sql);
@@ -41,6 +48,48 @@
           $errors['feed'] = 'blank';
         }
     }
+
+    $page = ''; //ページ番号が入る変数
+    $page_row_number = 5; //1ページあたりに表示するデータの数
+
+    if (isset($_GET['page'])) {
+      $page = $_GET['page'];
+    } else {
+      // get送信されてるページ数がないときは、1ページ目と見なす
+      $page = 1;
+    }
+
+    // if ($page < 1) {
+    //   $page = 1;
+    // }
+    // max:カンマ区切りで整列された数字の中から最大の数を返す
+    $page = max($page, 1);
+
+    // データの件数から、最大ページ数を計算する
+    $sql_count = "SELECT COUNT(*) as `cnt` FROM `feeds`";
+
+    // SQL実行
+    $stmt_count = $dbh->prepare($sql_count);
+    $stmt_count->execute();
+
+    $record_cnt = $stmt_count->fetch(PDO::FETCH_ASSOC);
+
+    // ページ数計算
+    // ceil 小数点の切り上げができる関数　2.1 -> 3に変換できる
+    $all_page_number = $record_cnt['cnt'] / $page_row_number;
+
+    // 不正に大きい数字を提供された場合、最大ページ番号に変換
+    // if ($page > $all_page_number) {
+    //   $page = $all_page_number;
+    // }
+
+    // min: カンマ区切りの中から最小の数値を取得する
+    $page = min($page, $all_page_number);
+
+    // データを取得する開始番号を計算
+    $start = ($page - 1)*$page_row_number;
+
+
     //検索ボタンが押されたら、あいまい検索
     //検索ボタンが押された＝GET送信されたsearch_wordというキーのデータがある
     if(isset($_GET['search_word']) == true){
@@ -52,7 +101,7 @@
     }else{
     //通常(検索ボタンが押されていない時)
     // LEFT JOINで全件取得
-      $sql = 'SELECT `f`.*,`u`.`name`,`u`.`img_name` FROM `feeds` AS `f` LEFT JOIN `users` AS `u` ON `f`.`user_id`=`u`.`id` WHERE 1 ORDER BY `id` DESC';
+      $sql = "SELECT `f`.*,`u`.`name`,`u`.`img_name` FROM `feeds` AS `f` LEFT JOIN `users` AS `u` ON `f`.`user_id`=`u`.`id` WHERE 1 ORDER BY `id` DESC LIMIT $start,$page_row_number";
   }
     $data = array();
     $stmt = $dbh->prepare($sql);
@@ -66,6 +115,26 @@
         if ($record == false) {
             break;
         }
+
+        // commentテーブルから今取得できているfeedに対してのデータを取得
+        $comment_sql = "SELECT `c`.*, `u`.`name`,`u`.`img_name` FROM `comments` AS `c` LEFT JOIN `users` AS `u` ON `c`.`user_id` = `u`.`id` WHERE `feed_id`=?";
+        $comment_data = array($record["id"]);
+        $comment_stmt = $dbh->prepare($comment_sql);
+        $comment_stmt->execute($comment_data);
+
+        $comments_array = array();
+
+        while (true) {
+          $comments_record = $comment_stmt->fetch(PDO::FETCH_ASSOC);
+          if ($comments_record == false) {
+            break;
+          }
+
+          $comments_array[] = $comments_record;
+        }
+
+        $record["comments"] = $comments_array;
+
         // like数を取得するSQL文を作成
         $like_sql = "SELECT COUNT(*) AS `like_cnt` FROM `likes` WHERE `feed_id` = ?";
 
@@ -110,7 +179,9 @@
 
         // $feeds[] = $record;//配列への要素追加
     }
-
+    // echo "<pre>";
+    // var_dump($feeds);
+    // echo "</pre>";
 
 ?>
 <!DOCTYPE html>
@@ -123,40 +194,7 @@
     <link rel="stylesheet" type="text/css" href="assets/css/style.css">
   </head>
   <body style="margin-top: 60px; background: #E4E6EB;">
-    <div class="navbar navbar-default navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse1" aria-expanded="false">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">Learn SNS</a>
-        </div>
-        <div class="collapse navbar-collapse" id="navbar-collapse1">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="#">タイムライン</a></li>
-            <li><a href="#">ユーザー一覧</a></li>
-          </ul>
-          <form method="GET" action="" class="navbar-form navbar-left" role="search">
-            <div class="form-group">
-              <input type="text" name="search_word" class="form-control" placeholder="投稿を検索">
-            </div>
-            <button type="submit" class="btn btn-default">検索</button>
-          </form>
-          <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><img src="user_profile_img/<?php echo $signin_user['img_name']; ?>" width="18" class="img-circle"><?php echo $signin_user['name']; ?><span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">マイページ</a></li>
-                <li><a href="signout.php">サインアウト</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <?php include("navbar.php"); ?>
 
     <div class="container">
       <div class="row">
@@ -218,7 +256,14 @@
                   <?php if ($feed["like_cnt"] > 0){ ?>
                     <span class="like_count">いいね数 : <?php echo $feed["like_cnt"]; ?></span>
                   <?php } ?>
-                  <span class="comment_count">コメント数 : 9</span>
+                  <a href="#collapseComment<?php echo $feed["id"]; ?>" data-toggle="collapse" aria-expanded="false">
+
+                    <?php if($feed["comment_count"] == 0) { ?>
+                    <span class="comment_count">コメント</span>
+                    <?php } else { ?>
+                    <span class="comment_count">コメント数 : <?php echo $feed["comment_count"]; ?></span>
+                    <?php } ?>
+                  </a>
 
                   <?php if ($feed["user_id"] == $_SESSION["id"]){ ?>
 
@@ -227,13 +272,26 @@
 
                   <?php } ?>
                 </div>
+                <!-- コメントが押されたら表示される領域 -->
+   <!--              <div class="collapse" id="collapseComment">
+                  表示の確認！
+                </div> -->
+                <?php include("comment_view.php"); ?>
               </div>
             </div>
             <?php } ?>
           <div aria-label="Page navigation">
             <ul class="pager">
-              <li class="previous disabled"><a href="#"><span aria-hidden="true">&larr;</span> Older</a></li>
-              <li class="next"><a href="#">Newer <span aria-hidden="true">&rarr;</span></a></li>
+              <?php if ($page == 1) { ?>
+                <li class="previous disabled"><a href="#"><span aria-hidden="true">&larr;</span> Newer</a></li>
+              <?php } else {?>
+                <li class="previous"><a href="timeline.php?page=<?php echo $page-1; ?>"><span aria-hidden="true">&larr;</span> Newer</a></li>
+              <?php } ?>
+              <?php if ($page == $all_page_number){ ?>
+              <li class="next disabled"><a href="#"><span aria-hidden="true">&larr;</span> Older</a></li>
+              <?php }else{ ?>
+              <li class="next"><a href="timeline.php?page=<?php echo $page+1; ?>"><span aria-hidden="true">&larr;</span> Older</a></li>
+              <?php } ?>
             </ul>
           </div>
         </div>

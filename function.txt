@@ -1,0 +1,15 @@
+関数
+
+基本構造
+
+関数を宣言するかきかた
+function 関数名 (引数1,引数2, ..) {
+  //実行される処理
+}
+
+function add_numer(x,y) {
+  echo x + y;
+}
+
+//
+add_number(1,2);

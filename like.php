@@ -12,5 +12,6 @@
   $stmt = $dbh->prepare($sql);
   $stmt->execute($data);
 
+
   header("Location: timeline.php");
  ?>
